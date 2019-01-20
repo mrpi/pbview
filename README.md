@@ -18,6 +18,7 @@ The pbview compiler (pbviewc) generates classes that have the same (read-only) i
 Please note, that every field access requires a (partial) parsing of the containing message.
 
 This means, that there is always a break-even point at which the deserialization of the message is faster.
+(It is easy to deserialize only single sub-messages of larger structs with this library.) 
 
 Benchmark your exact use-cases and than make a well-founded decision!
 
