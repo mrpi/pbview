@@ -7,12 +7,14 @@ The pbview compiler (pbviewc) generates classes that have the same (read-only) i
 
 # Requirements
 - C++17 compiler
+- google/protobuf
 - range-v3
 
 # Features
 - The parser seekes fast to the requested fields. Large sub-messages and strings can be skipped
 - Working with serialized messages has significant lower memory consumptions than holding deserialized messages in memory
 - No memory allocations (std::string_view directly pointing into the serialized message, instead of std::string)
+- Variant types that contain either a binary view or a google::protobuf::Message  
 
 # Drawbacks
 Please note, that every field access requires a (partial) parsing of the containing message.
