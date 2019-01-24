@@ -1,6 +1,7 @@
 #include <limits>
 
 #include <test/samples-pb2.pbview.h>
+#include <test/samples-pb2.pbvar.h>
 
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/zip.hpp>
@@ -286,23 +287,46 @@ void benchSimpleMessage(benchmark::State& state)
     }
 }
 
-void benchSimpleMessage_Fast(benchmark::State& state)
-{
-    benchSimpleMessage<pbview::ParserMode::Fast>(state);
-}
-BENCHMARK(benchSimpleMessage_Fast);
-
 void benchSimpleMessage_TrustedInputWithoutBoundsChecking(benchmark::State& state)
 {
     benchSimpleMessage<pbview::ParserMode::Fast_WithoutBoundsChecking>(state);
 }
 BENCHMARK(benchSimpleMessage_TrustedInputWithoutBoundsChecking);
 
+void benchSimpleMessage_Fast(benchmark::State& state)
+{
+    benchSimpleMessage<pbview::ParserMode::Fast>(state);
+}
+BENCHMARK(benchSimpleMessage_Fast);
+
 void benchSimpleMessage_StrictConforming(benchmark::State& state)
 {
     benchSimpleMessage<pbview::ParserMode::StrictConforming>(state);
 }
 BENCHMARK(benchSimpleMessage_StrictConforming);
+
+void benchSimpleMessage_Fast_Variant(benchmark::State& state)
+{
+    using Msg = pbview::samples::AllTypes;
+    Msg allTypes;
+    init(allTypes);
+
+    using View = pbview::View<Msg>;
+    using ViewOrRef = pbview::ViewOrRef<Msg>;
+
+    auto binStr = allTypes.SerializeAsString();
+
+    for (auto _ : state) {
+       auto var = ViewOrRef{View::fromBytesString(binStr)};
+       benchmark::DoNotOptimize(var);
+
+       auto val = var.fixed64_field();
+       benchmark::DoNotOptimize(val);
+       if (val != 84)
+          throw std::runtime_error("Unexpected result!");
+    }
+}
+BENCHMARK(benchSimpleMessage_Fast_Variant);
 
 
 BENCHMARK_MAIN();

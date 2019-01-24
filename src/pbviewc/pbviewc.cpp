@@ -161,7 +161,7 @@ struct VarImpl
    static constexpr auto TemplateArgs = "typename... Args"sv;
    static constexpr auto NameSuffix = "Var"sv;
    static constexpr auto LookupTemplate = "VariantFor"sv;
-   static constexpr auto DataType = "std::variant<Args...>"sv;
+   static constexpr auto DataType = "pbview::impl::variant<Args...>"sv;
 
    static std::string buildFullNameSuffix(const google::protobuf::FieldDescriptor& field)
    {
@@ -182,7 +182,7 @@ struct VarImpl
    {
       os << "  bool has_" << field.name() << "() const\n";
       os << "  {\n";
-      os << "     return std::visit([](auto&& data) -> bool { return pbview::impl::unwrap(data).has_" << field.name() << "(); }, mData);\n";
+      os << "     return pbview::impl::visit([](auto&& data) -> bool { return pbview::impl::unwrap(data).has_" << field.name() << "(); }, mData);\n";
       os << "  }\n";
    }
 
@@ -194,7 +194,7 @@ struct VarImpl
       auto fullNameSuffix = buildFullNameSuffix(field);
       os << "  std::optional<" << cppType(field, fullNameSuffix) << "> opt_" << field.name() << "() const\n";
       os << "  {\n";
-      os << "     return std::visit([](auto&& data) -> std::optional<" << cppType(field, fullNameSuffix) << "> {\n";
+      os << "     return pbview::impl::visit([](auto&& data) -> std::optional<" << cppType(field, fullNameSuffix) << "> {\n";
       os << "       if constexpr(std::is_base_of_v<google::protobuf::Message, std::decay_t<decltype(pbview::impl::unwrap(data))>>)\n";
       os << "       {\n";
       os << "          if (pbview::impl::unwrap(data).has_" << field.name() << "())\n";
@@ -215,7 +215,7 @@ struct VarImpl
       auto fullNameSuffix = buildFullNameSuffix(field);
       os << "  " << cppType(field, fullNameSuffix) << " " << field.name() << "() const\n";
       os << "  {\n";
-      os << "     return std::visit([](auto&& data) -> " << cppType(field, fullNameSuffix) << "\n";
+      os << "     return pbview::impl::visit([](auto&& data) -> " << cppType(field, fullNameSuffix) << "\n";
       os << "       {\n";
       os << "          return pbview::impl::unwrap(data)." << field.name() << "();\n";
       os << "       }, mData);\n";
