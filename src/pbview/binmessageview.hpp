@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <optional>
+#include "variant.hpp"
 
 #include <google/protobuf/message.h>
 #include <google/protobuf/wire_format_lite.h>
@@ -233,7 +234,7 @@ struct BinMessageView
    }
 
  private:
-   static inline char pop(DataSpan &bin)
+   static PBVIEW_FORCE_INLINE char pop(DataSpan &bin)
    {
       char c = static_cast<char>(bin[0]);
       bin.remove_prefix(1);
@@ -267,20 +268,35 @@ struct BinMessageView
    }
 
    template <int size, typename T>
-   static const std::uint8_t* VarintParse(const std::uint8_t* p, T* out) {
+   static void varintParse(const std::uint8_t* p, T* out) {
       T res = 0;
       T extra = 0;
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < size; i++)
+      {
          T byte = p[i];
          res += byte << (i * 7);
-         int j = i + 1;
-         if (lastByteOfVarint(byte)) {
+         if (lastByteOfVarint(byte))
+         {
             *out = res - extra;
-            return p + j;
+            return;
          }
          extra += 128ull << (i * 7);
       }
-      return nullptr;
+   }
+
+   template <int size, typename T>
+   static PBVIEW_FORCE_INLINE T varintParseFixed(const std::uint8_t* p) {
+      T res = 0;
+      T extra = 0;
+      for (int i = 0; i < size-1; i++)
+      {
+         T byte = p[i];
+         res += byte << (i * 7);
+         extra += 128ull << (i * 7);
+      }
+      T byte = p[size-1];
+      res += byte << ((size-1) * 7);
+      return res - extra;
    }
 
    template <typename Int>
@@ -296,10 +312,26 @@ struct BinMessageView
       }
 
       auto bytes = popVarint(bin);
+      auto c = reinterpret_cast<const std::uint8_t*>(bytes.data());
 
-      Int res{};
-      VarintParse<(sizeof(Int) > 4) ? 10 : 5>(reinterpret_cast<const std::uint8_t*>(bytes.data()), &res);
-      return res;
+
+      switch(bytes.size())
+      {
+      default:
+      {
+
+         Int res{};
+         //VarintParse<10>(c, &res);
+         varintParse<(sizeof(Int) > 4) ? 10 : 5>(c, &res);
+         return res;
+
+      }
+      //case 3:
+      //   return varintParseFixed<3, Int>(c);
+      //case 2:
+      //   return varintParseFixed<2, Int>(c);
+      }
+
    }
 
    static inline std::uint32_t popTag(DataSpan &bin)
@@ -683,6 +715,9 @@ using ViewOrRef = typename VariantFor<Msg>::template Type<typename ViewFor<Msg, 
 
 namespace impl
 {
+   using mpark::variant;
+   using mpark::visit;
+
    template<typename T>
    decltype(auto) unwrap(T&& t)
    {
